@@ -39,6 +39,9 @@ class Welcome(commands.Cog):
                 e = discord.Embed(description=msg, color=color, timestamp=datetime.datetime.utcnow())
                 e.set_author(name=member.display_name, icon_url=member.display_avatar.url)
                 e.set_footer(text=f"ID: {member.id}")
+                image_url = g_config.get("welcome_image")
+                if image_url:
+                    e.set_image(url=image_url)
                 await ch.send(embed=e)
 
         auto_role_id = g_config.get("auto_role")
@@ -84,6 +87,27 @@ class Welcome(commands.Cog):
         config.setdefault(str(interaction.guild.id), {})["welcome_message"] = message
         save_config(config)
         await interaction.response.send_message("✅ Welcome message updated.", ephemeral=True)
+
+    @app_commands.command(name="setwelcomeimage", description="Set a custom image for the welcome embed")
+    @app_commands.describe(image="Image to display in the welcome embed")
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def setwelcomeimage(self, interaction: discord.Interaction, image: discord.Attachment):
+        if not image.content_type or not image.content_type.startswith("image/"):
+            await interaction.response.send_message("❌ Please upload a valid image file.", ephemeral=True)
+            return
+        config = load_config()
+        config.setdefault(str(interaction.guild.id), {})["welcome_image"] = image.url
+        save_config(config)
+        await interaction.response.send_message("✅ Welcome image set.", ephemeral=True)
+
+    @app_commands.command(name="removewelcomeimage", description="Remove the custom welcome image")
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def removewelcomeimage(self, interaction: discord.Interaction):
+        config = load_config()
+        gid = str(interaction.guild.id)
+        config.get(gid, {}).pop("welcome_image", None)
+        save_config(config)
+        await interaction.response.send_message("✅ Welcome image removed.", ephemeral=True)
 
     @app_commands.command(name="setleavechannel", description="Set the leave message channel")
     @app_commands.describe(channel="Channel for leave messages")
